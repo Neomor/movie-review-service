@@ -29,8 +29,8 @@ Thumbs.db
 !gradle/wrapper/gradle-wrapper.jar
 
 # Maven
-#.mvn/
-#!mvn/wrapper/maven-wrapper.jar
+.mvn/
+!mvn/wrapper/maven-wrapper.jar
 
 # Настройки окружения
 .env
