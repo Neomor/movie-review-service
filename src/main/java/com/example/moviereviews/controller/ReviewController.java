@@ -12,8 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/reviews")
 @RequiredArgsConstructor

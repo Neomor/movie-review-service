@@ -1,4 +1,4 @@
-package com.example.moviereviews.config;
+package com.example.moviereviews.configuration;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.web.config.EnableSpringDataWebSupport;
