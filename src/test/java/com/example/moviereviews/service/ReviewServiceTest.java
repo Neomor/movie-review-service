@@ -1,6 +1,6 @@
 package com.example.moviereviews.service;
 
-import com.example.moviereviews.dto.ReviewCreateDto;
+import com.example.moviereviews.dto.ReviewRequestDto;
 import com.example.moviereviews.dto.ReviewResponseDto;
 import com.example.moviereviews.mapper.ReviewMapper;
 import com.example.moviereviews.model.Movie;
@@ -37,11 +37,10 @@ class ReviewServiceTest {
 
 	@Test
 	void createReview_shouldSaveReviewCorrectly() {
-		ReviewCreateDto reviewCreateDto = ReviewCreateDto.builder()
+		ReviewRequestDto reviewRequestDto = ReviewRequestDto.builder()
 			.rating(5)
 			.comment("Awesome!")
 			.reviewerName("John Doe")
-			.movieId(1L)
 			.build();
 		Movie movie = new Movie();
 		movie.setId(1L);
@@ -55,7 +54,7 @@ class ReviewServiceTest {
 		when(movieRepository.findById(1L)).thenReturn(Optional.of(movie));
 		when(reviewRepository.save(any(Review.class))).thenReturn(review);
 
-		ReviewResponseDto response = reviewService.createReview(reviewCreateDto);
+		ReviewResponseDto response = reviewService.createReview(movie.getId(), reviewRequestDto);
 		assertThat(response.getRating()).isEqualTo(5);
 		assertThat(response.getComment()).isEqualTo("Awesome!");
 		verify(reviewRepository, times(1)).save(any(Review.class));
@@ -101,11 +100,10 @@ class ReviewServiceTest {
 		Movie movie = new Movie();
 		movie.setId(1L);
 
-		ReviewCreateDto reviewCreateDto = ReviewCreateDto.builder()
+		ReviewRequestDto reviewCreateDto = ReviewRequestDto.builder()
 			.rating(5)
 			.comment("Updated Comment")
 			.reviewerName("Jane Doe")
-			.movieId(1L)
 			.build();
 
 		when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));

@@ -1,6 +1,6 @@
 package com.example.moviereviews.controller;
 
-import com.example.moviereviews.dto.ReviewCreateDto;
+import com.example.moviereviews.dto.ReviewRequestDto;
 import com.example.moviereviews.dto.ReviewResponseDto;
 import com.example.moviereviews.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,11 +21,11 @@ public class ReviewController {
 
 	private final ReviewService reviewService;
 
-	@PostMapping
+	@PostMapping("/{id}")
 	@Operation(summary = "Создать отзыв для фильма", description = "Создать отдельный отзыв и привязать его к фильму")
-	public ReviewResponseDto createReview(@RequestBody @Valid ReviewCreateDto reviewCreateDto) {
-		log.info("Creating a new review for movieId={}", reviewCreateDto.getMovieId());
-		return reviewService.createReview(reviewCreateDto);
+	public ReviewResponseDto createReview(@PathVariable Long id, @RequestBody @Valid ReviewRequestDto reviewRequestDto) {
+		log.info("Creating a new review for movie id={}", id);
+		return reviewService.createReview(id, reviewRequestDto);
 	}
 
 	@GetMapping
@@ -46,9 +46,9 @@ public class ReviewController {
 
 	@PutMapping("/{id}")
 	@Operation(summary = "Обновить отзыв", description = "Обновить отзыв по его ID")
-	public ReviewResponseDto updateReview(@PathVariable Long id, @RequestBody @Valid ReviewCreateDto reviewCreateDto) {
+	public ReviewResponseDto updateReview(@PathVariable Long id, @RequestBody @Valid ReviewRequestDto reviewRequestDto) {
 		log.info("Updating review with id={}", id);
-		return reviewService.updateReview(id, reviewCreateDto);
+		return reviewService.updateReview(id, reviewRequestDto);
 	}
 
 	@DeleteMapping("/{id}")

@@ -1,6 +1,6 @@
 package com.example.moviereviews.service;
 
-import com.example.moviereviews.dto.ReviewCreateDto;
+import com.example.moviereviews.dto.ReviewRequestDto;
 import com.example.moviereviews.dto.ReviewResponseDto;
 import com.example.moviereviews.model.Movie;
 import com.example.moviereviews.model.Review;
@@ -23,14 +23,14 @@ public class ReviewService {
 	private final ReviewMapper reviewMapper;
 
 	@CacheEvict(value = {"movies", "topRatedMovies", "reviews"}, allEntries = true)
-	public ReviewResponseDto createReview(ReviewCreateDto reviewCreateDto) {
-		Movie movie = movieRepository.findById(reviewCreateDto.getMovieId())
-			.orElseThrow(() -> new RuntimeException("Фильм с ID " + reviewCreateDto.getMovieId() + " не найден"));
+	public ReviewResponseDto createReview(Long id, ReviewRequestDto reviewRequestDto) {
+		Movie movie = movieRepository.findById(id)
+			.orElseThrow(() -> new RuntimeException("Фильм с ID " + id + " не найден"));
 
 		Review review = Review.builder()
-			.rating(reviewCreateDto.getRating())
-			.comment(reviewCreateDto.getComment())
-			.reviewerName(reviewCreateDto.getReviewerName())
+			.rating(reviewRequestDto.getRating())
+			.comment(reviewRequestDto.getComment())
+			.reviewerName(reviewRequestDto.getReviewerName())
 			.movie(movie)
 			.build();
 
@@ -52,17 +52,13 @@ public class ReviewService {
 	}
 
 	@CacheEvict(value = {"movies", "topRatedMovies", "reviews"}, allEntries = true)
-	public ReviewResponseDto updateReview(Long id, ReviewCreateDto reviewCreateDto) {
+	public ReviewResponseDto updateReview(Long id, ReviewRequestDto reviewRequestDto) {
 		Review review = reviewRepository.findById(id)
 			.orElseThrow(() -> new RuntimeException("Отзыв с ID " + id + " не найден"));
 
-		Movie movie = movieRepository.findById(reviewCreateDto.getMovieId())
-			.orElseThrow(() -> new RuntimeException("Фильм с ID " + reviewCreateDto.getMovieId() + " не найден"));
-
-		review.setRating(reviewCreateDto.getRating());
-		review.setComment(reviewCreateDto.getComment());
-		review.setReviewerName(reviewCreateDto.getReviewerName());
-		review.setMovie(movie);
+		review.setRating(reviewRequestDto.getRating());
+		review.setComment(reviewRequestDto.getComment());
+		review.setReviewerName(reviewRequestDto.getReviewerName());
 
 		Review updatedReview = reviewRepository.save(review);
 		return mapToReviewResponseDto(updatedReview);
