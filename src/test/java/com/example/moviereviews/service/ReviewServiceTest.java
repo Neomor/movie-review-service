@@ -100,7 +100,7 @@ class ReviewServiceTest {
 		Movie movie = new Movie();
 		movie.setId(1L);
 
-		ReviewRequestDto reviewCreateDto = ReviewRequestDto.builder()
+		ReviewRequestDto reviewRequestDto = ReviewRequestDto.builder()
 			.rating(5)
 			.comment("Updated Comment")
 			.reviewerName("Jane Doe")
@@ -110,7 +110,7 @@ class ReviewServiceTest {
 		when(movieRepository.findById(1L)).thenReturn(Optional.of(movie));
 		when(reviewRepository.save(any(Review.class))).thenReturn(review);
 
-		ReviewResponseDto response = reviewService.updateReview(1L, reviewCreateDto);
+		ReviewResponseDto response = reviewService.updateReview(1L, reviewRequestDto);
 		assertThat(response.getComment()).isEqualTo("Updated Comment");
 		verify(reviewRepository, times(1)).save(review);
 	}
