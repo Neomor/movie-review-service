@@ -7,126 +7,166 @@ import com.example.moviereviews.model.Movie;
 import com.example.moviereviews.model.Review;
 import com.example.moviereviews.repository.MovieRepository;
 import com.example.moviereviews.repository.ReviewRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 
-import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ReviewServiceTest {
 
+	@Mock
 	private ReviewRepository reviewRepository;
+
+	@Mock
 	private MovieRepository movieRepository;
+
+	@Mock
 	private ReviewMapper reviewMapper;
+
+	@InjectMocks
 	private ReviewService reviewService;
 
-	@BeforeEach
-	void setUp() {
-		reviewRepository = mock(ReviewRepository.class);
-		movieRepository = mock(MovieRepository.class);
-		reviewMapper = mock(ReviewMapper.class);
-		reviewService = new ReviewService(reviewRepository, movieRepository, reviewMapper);
-	}
-
 	@Test
-	void createReview_shouldSaveReviewCorrectly() {
-		ReviewRequestDto reviewRequestDto = ReviewRequestDto.builder()
-			.rating(5)
-			.comment("Awesome!")
-			.reviewerName("John Doe")
-			.build();
+	void testCreateReviewSuccess() {
+		Long movieId = 1L;
+		ReviewRequestDto requestDto = ReviewRequestDto.builder()
+			.rating(5).comment("Excellent").reviewerName("Bob").build();
+
 		Movie movie = new Movie();
-		movie.setId(1L);
+		Review savedReview = Review.builder().id(10L).movie(movie).build();
+		ReviewResponseDto responseDto = ReviewResponseDto.builder().id(10L).build();
 
-		Review review = new Review();
-		review.setRating(5);
-		review.setComment("Awesome!");
-		review.setReviewerName("John Doe");
-		review.setMovie(movie);
+		when(movieRepository.findById(movieId)).thenReturn(Optional.of(movie));
+		when(reviewRepository.save(any())).thenReturn(savedReview);
+		when(reviewMapper.toResponseDto(savedReview)).thenReturn(responseDto);
 
-		when(movieRepository.findById(1L)).thenReturn(Optional.of(movie));
-		when(reviewRepository.save(any(Review.class))).thenReturn(review);
+		ReviewResponseDto result = reviewService.createReview(movieId, requestDto);
 
-		ReviewResponseDto response = reviewService.createReview(movie.getId(), reviewRequestDto);
-		assertThat(response.getRating()).isEqualTo(5);
-		assertThat(response.getComment()).isEqualTo("Awesome!");
-		verify(reviewRepository, times(1)).save(any(Review.class));
+		assertNotNull(result);
+		assertEquals(10L, result.getId());
+		verify(movieRepository).findById(movieId);
+		verify(reviewRepository).save(any());
+		verify(reviewMapper).toResponseDto(savedReview);
 	}
 
 	@Test
-	void getAllReviews_shouldReturnPageOfReviews() {
-		Review review = new Review();
-		when(reviewRepository.findAll(any(Pageable.class)))
-			.thenReturn(new PageImpl<>(List.of(review)));
-		when(reviewMapper.toResponseDto(any(Review.class))).thenReturn(new ReviewResponseDto());
+	void testCreateReviewMovieNotFound() {
+		when(movieRepository.findById(99L)).thenReturn(Optional.empty());
 
-		Page<ReviewResponseDto> result = reviewService.getAllReviews(Pageable.unpaged());
-		assertThat(result.getContent()).hasSize(1);
-		verify(reviewRepository, times(1)).findAll(any(Pageable.class));
+		ReviewRequestDto requestDto = ReviewRequestDto.builder()
+			.rating(5)
+			.comment("Test")
+			.reviewerName("Tester")
+			.build();
+
+		RuntimeException exception = assertThrows(RuntimeException.class, () ->
+			reviewService.createReview(99L, requestDto)
+		);
+
+		assertEquals("Фильм с ID 99 не найден", exception.getMessage());
 	}
 
 	@Test
-	void getReviewById_shouldReturnReviewIfExists() {
+	void testGetAllReviews() {
+		Pageable pageable = PageRequest.of(0, 10);
 		Review review = new Review();
-		review.setId(1L);
-		review.setRating(4);
+		ReviewResponseDto dto = new ReviewResponseDto();
+		Page<Review> reviewPage = new PageImpl<>(java.util.List.of(review));
+
+		when(reviewRepository.findAll(pageable)).thenReturn(reviewPage);
+		when(reviewMapper.toResponseDto(any(Review.class))).thenReturn(dto);
+
+		Page<ReviewResponseDto> result = reviewService.getAllReviews(pageable);
+
+		assertEquals(1, result.getTotalElements());
+		verify(reviewRepository).findAll(pageable);
+	}
+
+	@Test
+	void testGetReviewByIdFound() {
+		Review review = new Review();
+		ReviewResponseDto dto = new ReviewResponseDto();
 
 		when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+		when(reviewMapper.toResponseDto(review)).thenReturn(dto);
 
 		ReviewResponseDto result = reviewService.getReviewById(1L);
-		assertThat(result.getRating()).isEqualTo(4);
-		verify(reviewRepository, times(1)).findById(1L);
+
+		assertNotNull(result);
+		verify(reviewRepository).findById(1L);
 	}
 
 	@Test
-	void getReviewById_shouldThrowExceptionIfNotFound() {
-		when(reviewRepository.findById(anyLong())).thenReturn(Optional.empty());
+	void testGetReviewByIdNotFound() {
+		when(reviewRepository.findById(1L)).thenReturn(Optional.empty());
 
-		assertThrows(RuntimeException.class, () -> reviewService.getReviewById(1L));
-		verify(reviewRepository, times(1)).findById(1L);
+		RuntimeException exception = assertThrows(RuntimeException.class, () ->
+			reviewService.getReviewById(1L)
+		);
+
+		assertEquals("Отзыв с ID 1 не найден", exception.getMessage());
 	}
 
 	@Test
-	void updateReview_shouldUpdateAndSaveReview() {
-		Review review = new Review();
-		review.setId(1L);
-		Movie movie = new Movie();
-		movie.setId(1L);
+	void testUpdateReviewSuccess() {
+		Long reviewId = 1L;
+		Review existing = Review.builder().id(reviewId).build();
+		Review updated = Review.builder().id(reviewId).build();
+		ReviewRequestDto requestDto = ReviewRequestDto.builder()
+			.rating(4).comment("Updated").reviewerName("Sam").build();
+		ReviewResponseDto dto = ReviewResponseDto.builder().id(reviewId).build();
 
-		ReviewRequestDto reviewRequestDto = ReviewRequestDto.builder()
-			.rating(5)
-			.comment("Updated Comment")
-			.reviewerName("Jane Doe")
+		when(reviewRepository.findById(reviewId)).thenReturn(Optional.of(existing));
+		when(reviewRepository.save(existing)).thenReturn(updated);
+		when(reviewMapper.toResponseDto(updated)).thenReturn(dto);
+
+		ReviewResponseDto result = reviewService.updateReview(reviewId, requestDto);
+
+		assertEquals(reviewId, result.getId());
+		verify(reviewRepository).save(existing);
+	}
+
+	@Test
+	void testUpdateReviewNotFound() {
+		when(reviewRepository.findById(2L)).thenReturn(Optional.empty());
+
+		ReviewRequestDto requestDto = ReviewRequestDto.builder()
+			.rating(3)
+			.comment("Update")
+			.reviewerName("Alex")
 			.build();
 
-		when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
-		when(movieRepository.findById(1L)).thenReturn(Optional.of(movie));
-		when(reviewRepository.save(any(Review.class))).thenReturn(review);
+		RuntimeException exception = assertThrows(RuntimeException.class, () ->
+			reviewService.updateReview(2L, requestDto)
+		);
 
-		ReviewResponseDto response = reviewService.updateReview(1L, reviewRequestDto);
-		assertThat(response.getComment()).isEqualTo("Updated Comment");
-		verify(reviewRepository, times(1)).save(review);
+		assertEquals("Отзыв с ID 2 не найден", exception.getMessage());
 	}
 
 	@Test
-	void deleteReview_shouldDeleteWhenExists() {
-		when(reviewRepository.existsById(1L)).thenReturn(true);
-		reviewService.deleteReview(1L);
-		verify(reviewRepository, times(1)).deleteById(1L);
+	void testDeleteReviewSuccess() {
+		when(reviewRepository.existsById(3L)).thenReturn(true);
+
+		reviewService.deleteReview(3L);
+
+		verify(reviewRepository).deleteById(3L);
 	}
 
 	@Test
-	void deleteReview_shouldThrowExceptionWhenNotFound() {
-		when(reviewRepository.existsById(anyLong())).thenReturn(false);
-		
-		assertThrows(RuntimeException.class, () -> reviewService.deleteReview(1L));
-		verify(reviewRepository, never()).deleteById(anyLong());
+	void testDeleteReviewNotFound() {
+		when(reviewRepository.existsById(4L)).thenReturn(false);
+
+		RuntimeException exception = assertThrows(RuntimeException.class, () ->
+			reviewService.deleteReview(4L)
+		);
+
+		assertEquals("Отзыв с ID 4 не найден", exception.getMessage());
 	}
 }

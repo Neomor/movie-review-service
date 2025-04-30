@@ -4,14 +4,17 @@ import com.example.moviereviews.dto.MovieRequestDto;
 import com.example.moviereviews.dto.MovieResponseDto;
 import com.example.moviereviews.dto.ReviewResponseDto;
 import com.example.moviereviews.model.Movie;
-import com.example.moviereviews.model.Review;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class MovieMapper {
+
+	private final ReviewMapper reviewMapper;
 
 	public Movie toEntity(MovieRequestDto movieRequestDto) {
 		Movie movie = new Movie();
@@ -32,21 +35,11 @@ public class MovieMapper {
 
 		if (movie.getReviews() != null) {
 			List<ReviewResponseDto> reviews = movie.getReviews().stream()
-				.map(this::toReviewResponseDto)
+				.map(reviewMapper::toResponseDto)
 				.collect(Collectors.toList());
 			dto.setReviews(reviews);
 		}
 
-		return dto;
-	}
-
-	private ReviewResponseDto toReviewResponseDto(Review review) {
-		ReviewResponseDto dto = new ReviewResponseDto();
-		dto.setId(review.getId());
-		dto.setRating(review.getRating());
-		dto.setComment(review.getComment());
-		dto.setReviewerName(review.getReviewerName());
-		dto.setMovieId(review.getMovie().getId());
 		return dto;
 	}
 }

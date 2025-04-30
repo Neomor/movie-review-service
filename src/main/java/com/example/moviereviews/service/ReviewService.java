@@ -35,7 +35,7 @@ public class ReviewService {
 			.build();
 
 		Review savedReview = reviewRepository.save(review);
-		return mapToReviewResponseDto(savedReview);
+		return reviewMapper.toResponseDto(savedReview);
 	}
 
 	@Cacheable(value = "reviews")
@@ -48,7 +48,7 @@ public class ReviewService {
 	public ReviewResponseDto getReviewById(Long id) {
 		Review review = reviewRepository.findById(id)
 			.orElseThrow(() -> new RuntimeException("Отзыв с ID " + id + " не найден"));
-		return mapToReviewResponseDto(review);
+		return reviewMapper.toResponseDto(review);
 	}
 
 	@CacheEvict(value = {"movies", "topRatedMovies", "reviews"}, allEntries = true)
@@ -61,7 +61,7 @@ public class ReviewService {
 		review.setReviewerName(reviewRequestDto.getReviewerName());
 
 		Review updatedReview = reviewRepository.save(review);
-		return mapToReviewResponseDto(updatedReview);
+		return reviewMapper.toResponseDto(updatedReview);
 	}
 
 	@CacheEvict(value = {"movies", "topRatedMovies", "reviews"}, allEntries = true)
@@ -72,13 +72,4 @@ public class ReviewService {
 		reviewRepository.deleteById(id);
 	}
 
-	private ReviewResponseDto mapToReviewResponseDto(Review review) {
-		return ReviewResponseDto.builder()
-			.id(review.getId())
-			.rating(review.getRating())
-			.comment(review.getComment())
-			.reviewerName(review.getReviewerName())
-			.movieId(review.getMovie() != null ? review.getMovie().getId() : null)
-			.build();
-	}
 }

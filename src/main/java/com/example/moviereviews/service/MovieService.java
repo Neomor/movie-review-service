@@ -3,7 +3,6 @@ package com.example.moviereviews.service;
 import com.example.moviereviews.dto.MovieRequestDto;
 import com.example.moviereviews.dto.MovieResponseDto;
 import com.example.moviereviews.dto.ReviewRequestDto;
-import com.example.moviereviews.dto.ReviewResponseDto;
 import com.example.moviereviews.model.Movie;
 import com.example.moviereviews.model.Review;
 import com.example.moviereviews.repository.MovieRepository;
@@ -18,7 +17,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.ArrayList;
 
 @Service
@@ -58,7 +56,7 @@ public class MovieService {
 	public MovieResponseDto getMovieById(Long id) {
 		Movie movie = movieRepository.findById(id)
 			.orElseThrow(() -> new RuntimeException("Фильм с ID " + id + " не найден"));
-		return mapToMovieResponseDto(movie);
+		return movieMapper.toResponseDto(movie);
 	}
 
 	@CacheEvict(value = {"movies", "topRatedMovies", "reviews"}, allEntries = true)
@@ -91,7 +89,7 @@ public class MovieService {
 		}
 
 		Movie updatedMovie = movieRepository.save(movie);
-		return mapToMovieResponseDto(updatedMovie);
+		return movieMapper.toResponseDto(updatedMovie);
 	}
 
 	@CacheEvict(value = {"movies", "topRatedMovies", "reviews"}, allEntries = true)
@@ -100,31 +98,6 @@ public class MovieService {
 			throw new RuntimeException("Фильм с ID " + id + " не найден");
 		}
 		movieRepository.deleteById(id);
-	}
-
-	private MovieResponseDto mapToMovieResponseDto(Movie movie) {
-		return MovieResponseDto.builder()
-			.id(movie.getId())
-			.title(movie.getTitle())
-			.releaseYear(movie.getReleaseYear())
-			.genre(movie.getGenre())
-			.director(movie.getDirector())
-			.reviews(movie.getReviews() != null
-				? movie.getReviews().stream()
-				.map(this::mapToReviewResponseDto)
-				.collect(Collectors.toList())
-				: null)
-			.build();
-	}
-
-	private ReviewResponseDto mapToReviewResponseDto(Review review) {
-		return ReviewResponseDto.builder()
-			.id(review.getId())
-			.rating(review.getRating())
-			.comment(review.getComment())
-			.reviewerName(review.getReviewerName())
-			.movieId(review.getMovie() != null ? review.getMovie().getId() : null)
-			.build();
 	}
 
 	@Cacheable(value = "movies", key = "#genre")
